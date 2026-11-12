@@ -42,6 +42,8 @@ line-messaging-automation/
 │   ├── config.json                  ← 設定檔（迴圈次數/座標/內容/間隔…）
 │   ├── config_ui.py                 ← 設定 UI（雙擊 設定.command 即可調，不用碰程式）
 │   ├── mouse_position.py            ← 對齊工具：標記＋即時座標（被拆出去的第二工具）
+│   ├── hub.py                       ← 總控台（三個功能一個視窗，只做膠水）
+│   ├── 開始.command                 ← 雙擊啟動檔（開啟總控台）
 │   ├── 設定.command                 ← 雙擊啟動檔（開啟設定 UI）
 │   ├── 測座標.command               ← 雙擊啟動檔（對齊工具）
 │   └── 跑auto_click.command         ← 雙擊啟動檔（自動化主程式）
