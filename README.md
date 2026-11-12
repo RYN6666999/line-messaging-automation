@@ -38,8 +38,11 @@ line-messaging-automation/
 │   ├── SETUP.md                     ← 安裝／權限／設定／執行／除錯（真的能跑）
 │   └── DEVELOPMENT.md               ← 完整開發史：前因後果、遇到的坑、怎麼想
 ├── scripts/
-│   ├── auto_click.py                ← 純自動化主程式（最終版，無任何擋點擊的視窗）
+│   ├── auto_click.py                ← 純自動化主程式（設定從 config.json 讀取）
+│   ├── config.json                  ← 設定檔（迴圈次數/座標/內容/間隔…）
+│   ├── config_ui.py                 ← 設定 UI（雙擊 設定.command 即可調，不用碰程式）
 │   ├── mouse_position.py            ← 對齊工具：標記＋即時座標（被拆出去的第二工具）
+│   ├── 設定.command                 ← 雙擊啟動檔（開啟設定 UI）
 │   ├── 測座標.command               ← 雙擊啟動檔（對齊工具）
 │   └── 跑auto_click.command         ← 雙擊啟動檔（自動化主程式）
 └── LICENSE

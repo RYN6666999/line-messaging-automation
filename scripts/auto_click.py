@@ -12,47 +12,58 @@ import tkinter as tk
 import pyautogui
 from pynput import keyboard
 
-# ════════════════════ ★★ 設定區（只改這裡） ════════════════════
-LINE_APP_NAME = "LINE"          # LINE 的 App 名稱
-CLICK_1 = (917, 529)            # 步驟1：輸入框位置
-CLICK_2 = (659, 811)            # 步驟2：點擊位置
-PASTE_TEXT = """各位好朋友 👋✨
-2026 即將來到年底 🎄
+# ════════════════════ ★★ 設定（從 config.json 讀取） ════════════════════
+# 用「設定.command」的 UI 調整即可，不用手改這支程式。
+# 下面是「預設值」：只有當 config.json 不存在或讀取失敗時才會用到。
+import json
+from pathlib import Path
+CONFIG_FILE = Path(__file__).with_name("config.json")
+_DEFAULT_CONFIG = {
+    "LINE_APP_NAME": "LINE",
+    "CLICK_1": [917, 529],
+    "CLICK_2": [659, 811],
+    "PASTE_TEXT": ("各位好朋友 👋✨\n"
+                   "2026 即將來到年底 🎄\n\n"
+                   "想簡單調查一下 📋\n"
+                   "辦什麼活動大家會有興趣參與呢？\n\n"
+                   "📚 +1 讀書會\n類型不拘，會提前公布 📖\n\n"
+                   "🎲 +2 桌遊\n知識性與娛樂性兼具 🧠🎉\n\n"
+                   "🚴‍♂️ +3 運動\n可能是夜騎 🌙 或爬山淨山 ⛰️♻️\n\n"
+                   "🤖 +4 AI 相關\n工作坊或資訊分享 💡💻\n\n"
+                   "🤝 +5 聯誼活動\n手作 ✂️🎨 或對談 ☕💬\n\n"
+                   "👉 回我「+數字」就可以"),
+    "REPEAT_TIMES": 2,
+    "STEP_INTERVAL": 0.3,
+    "COUNTDOWN_SEC": 3,
+    "SWITCH_CHAT_HOTKEY": ["down"],
+    "DRY_RUN": False,
+    "TRACE": True,
+}
 
-想簡單調查一下 📋
-辦什麼活動大家會有興趣參與呢？
 
-📚 +1 讀書會
-類型不拘，會提前公布 📖
+def load_config():
+    cfg = dict(_DEFAULT_CONFIG)
+    if CONFIG_FILE.exists():
+        try:
+            for k, v in json.loads(CONFIG_FILE.read_text(encoding="utf-8")).items():
+                cfg[k] = v
+        except Exception as e:
+            print(f"⚠️ config.json 讀取失敗({e})，使用預設值。")
+    return cfg
 
-🎲 +2 桌遊
-知識性與娛樂性兼具 🧠🎉
 
-🚴‍♂️ +3 運動
-可能是夜騎 🌙 或爬山淨山 ⛰️♻️
-
-🤖 +4 AI 相關
-工作坊或資訊分享 💡💻
-
-🤝 +5 聯誼活動
-手作 ✂️🎨 或對談 ☕💬
-
-👉 回我「+數字」就可以"""   # 每次貼這一段
-REPEAT_TIMES = 2                # 先測真動作：2次（確認對再放大）
-STEP_INTERVAL = 0.3             # 每個步驟之間固定等 0.3 秒
-COUNTDOWN_SEC = 3               # 按 Enter 後倒數(秒)
-
-# 切到下一個聊天室的鍵（你實測過是 ↓，所以用方向鍵下）
-# 若之後想換別的鍵，改成例如 ("ctrl","tab") 或 ("down",)
-SWITCH_CHAT_HOTKEY = ("down",)
-
-# ★ 測試開關：True=只移動滑鼠檢查座標(不點不貼不送出)；False=真的跑
-DRY_RUN = False
-
-# ★ 追蹤開關：True=把每一動的「前景App/滑鼠位置/剪貼簿」寫進 auto_click_trace.log
-#             用來驗證點擊到底有沒有作用在 LINE 上（排錯用）
-TRACE = True
-TRACE_FILE = "auto_click_trace.log"
+_cfg = load_config()
+LINE_APP_NAME        = _cfg["LINE_APP_NAME"]
+CLICK_1              = tuple(_cfg["CLICK_1"])
+CLICK_2              = tuple(_cfg["CLICK_2"])
+PASTE_TEXT           = _cfg["PASTE_TEXT"]
+REPEAT_TIMES         = int(_cfg["REPEAT_TIMES"])
+STEP_INTERVAL        = float(_cfg["STEP_INTERVAL"])
+COUNTDOWN_SEC        = int(_cfg["COUNTDOWN_SEC"])
+SWITCH_CHAT_HOTKEY   = tuple(_cfg["SWITCH_CHAT_HOTKEY"])
+DRY_RUN              = bool(_cfg["DRY_RUN"])
+TRACE                = bool(_cfg.get("TRACE", True))
+TRACE_FILE           = "auto_click_trace.log"
 # ════════════════════ 設定區結束 ════════════════════
 
 STATE = {"start": False, "stop": False}

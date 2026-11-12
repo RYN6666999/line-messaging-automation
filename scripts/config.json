@@ -1,0 +1,12 @@
+{
+  "LINE_APP_NAME": "LINE",
+  "CLICK_1": [917, 529],
+  "CLICK_2": [659, 811],
+  "PASTE_TEXT": "各位好朋友 👋✨\n2026 即將來到年底 🎄\n\n想簡單調查一下 📋\n辦什麼活動大家會有興趣參與呢？\n\n📚 +1 讀書會\n類型不拘，會提前公布 📖\n\n🎲 +2 桌遊\n知識性與娛樂性兼具 🧠🎉\n\n🚴‍♂️ +3 運動\n可能是夜騎 🌙 或爬山淨山 ⛰️♻️\n\n🤖 +4 AI 相關\n工作坊或資訊分享 💡💻\n\n🤝 +5 聯誼活動\n手作 ✂️🎨 或對談 ☕💬\n\n👉 回我「+數字」就可以",
+  "REPEAT_TIMES": 2,
+  "STEP_INTERVAL": 0.3,
+  "COUNTDOWN_SEC": 3,
+  "SWITCH_CHAT_HOTKEY": ["down"],
+  "DRY_RUN": false,
+  "TRACE": true
+}
