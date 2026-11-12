@@ -18,7 +18,11 @@ from pathlib import Path
 from tkinter import messagebox, ttk
 
 import pyautogui
-from pynput import keyboard
+
+# 刻意「不用」pynput：
+# macOS 26 已知 bug —— pynput 的鍵盤監聽(CGEventTap)在背景執行緒跑，期間按
+# CapsLock 切中英輸入法會讓整支程式崩潰。這裡改用 tkinter 自己的鍵盤事件
+# （在主執行緒、不裝 CGEventTap），徹底避開。
 
 CONFIG_FILE = Path(__file__).with_name("config.json")
 
@@ -50,64 +54,42 @@ class App:
     def __init__(self, root, cfg):
         self.root = root
         self.cfg = cfg
-        self._listener = None
         self._build()
 
-    # ── 短暫監聽（只在抓座標期間存在，鎖定後立刻關）──
-    def _stop_listener(self):
-        if self._listener is not None:
-            try:
-                self._listener.stop()
-            except Exception:
-                pass
-            self._listener = None
-
+    # ── 抓座標（用 tkinter 鍵盤事件，不用 pynput，避免 macOS 26 崩潰）──
     def grab_coord(self, ex, ey, label):
-        self._stop_listener()   # 先關上一次的殘留
         top = tk.Toplevel(self.root)
         top.geometry("+40+120")
         top.attributes("-topmost", True)
         tk.Label(top,
                  text=f"把滑鼠移到【{label}】的目標位置，\n然後按鍵盤【任意鍵】鎖定（Esc 取消）",
                  font=("PingFang TC", 13)).pack(padx=24, pady=14)
-        tk.Label(top, text="⚠️ 此刻勿用 CapsLock 切中英輸入法",
-                 fg="#c00", font=("PingFang TC", 11)).pack(pady=(0, 10))
+        top.lift()
+        top.focus_force()          # 搶鍵盤焦點，才能收到按鍵
 
         state = {"done": False}
 
-        def close():
+        def finish(pos):
             if state["done"]:
                 return
             state["done"] = True
-            self._stop_listener()
             try:
                 top.destroy()
             except Exception:
                 pass
+            if pos:
+                ex.delete(0, "end"); ex.insert(0, str(pos[0]))
+                ey.delete(0, "end"); ey.insert(0, str(pos[1]))
 
-        def on_capture():
-            if state["done"]:
-                return
-            state["done"] = True
-            pos = tuple(pyautogui.position())
-            self._stop_listener()
-            top.destroy()
-            ex.delete(0, "end"); ex.insert(0, str(pos[0]))
-            ey.delete(0, "end"); ey.insert(0, str(pos[1]))
+        def on_key(ev):
+            if ev.keysym == "Escape":
+                finish(None)
+            else:
+                finish(tuple(pyautogui.position()))   # 讀「目前滑鼠位置」
 
-        def on_press(key):
-            try:
-                if key == keyboard.Key.esc:
-                    self.root.after(0, close)
-                else:
-                    self.root.after(0, on_capture)
-            except Exception:
-                self.root.after(0, on_capture)
-
-        self._listener = keyboard.Listener(on_press=on_press)
-        self._listener.daemon = True
-        self._listener.start()
-        top.protocol("WM_DELETE_WINDOW", close)
+        top.bind("<Key>", on_key)
+        top.bind("<Escape>", lambda e: finish(None))
+        top.protocol("WM_DELETE_WINDOW", lambda: finish(None))
 
     # ── UI ──
     def _build(self):
@@ -174,7 +156,6 @@ class App:
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _on_close(self):
-        self._stop_listener()
         self.root.destroy()
 
     def on_save(self):
