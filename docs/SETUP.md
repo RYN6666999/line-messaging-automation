@@ -104,6 +104,7 @@ python3 auto_click.py
 | 沒動作 | 缺輔助使用權限 | §3，開完要 Cmd+Q 重開終端機 |
 | 貼上是空白／只剩 v/ㄒ | 中文輸入法吃掉 ⌘V | 已內建 pynput 手動 ⌘V；仍偶發就把 `STEP_INTERVAL` 調大 |
 | 點擊沒生效 | ① 座標對錯 LINE 位置 ② 視窗動過 | 重跑 mouse_position 對齊；LINE 視窗別移動／縮放 |
+| 程式突然崩潰（EXC_BREAKPOINT / SIGTRAP） | **macOS 26 已知 bug**：pynput 監聽運作期間按 **CapsLock 切中英輸入法**，TSM 在主執行緒外被呼叫 → 整支崩潰 | 設定/對齊/執行時**不要用 CapsLock 切輸入法**；到「系統設定→鍵盤→輸入方式」把切換改成別的按鍵（如 Ctrl+Space），一勞永逸 |
 | 點一下卻開到別的地方 | 有殘留的標記視窗蓋住 | 已拆到 `mouse_position.py`，`auto_click` 不再畫標記 |
 
 ## 9. 重要提醒
@@ -111,3 +112,4 @@ python3 auto_click.py
 - **座標是死的**：LINE 視窗只要移動或縮放，座標就會偏移 — 每次跑前先對齊，不然會點錯人。
 - **大批量有風險**：連發通知可能觸發 LINE 限流／帳號警告，量大前先把 `STEP_INTERVAL` 調大並先小量驗證。
 - **這是給自己帳號的操作工具**：實際發送對象與內容，請自行確認無誤再執行。
+- **macOS 26 崩潰防護**：這些工具會用 `pynput` 監聽鍵盤（設定抓座標、對齊的 ESC、執行的 Enter/ESC）。**運作期間不要用 CapsLock 切中英輸入法**（會觸發 macOS 26 的 TSM 主執行緒 assert 而整支崩潰）。建議把「中英切換」改到非 CapsLock 的快捷鍵。
