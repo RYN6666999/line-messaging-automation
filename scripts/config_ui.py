@@ -111,40 +111,62 @@ class App:
         for i, it in enumerate(self.items, 1):
             self.lb.insert("end", _fmt_item(i, it))
 
-    def add_text(self):
+    def add_text(self, index=None):
+        """新增文字/超連結；index 給定時 = 編輯該筆（預先填入）。"""
+        is_edit = index is not None
         top = tk.Toplevel(self.root)
-        top.title("加入文字/超連結")
+        top.title("編輯文字/超連結" if is_edit else "加入文字/超連結")
         top.geometry("520x360")
         tk.Label(top, text="要發送的內容（超連結直接貼網址即可）",
                  font=("PingFang TC", 12)).pack(anchor="w", padx=12, pady=(10, 4))
         st = scrolledtext.ScrolledText(top, height=12, width=60,
                                        font=("PingFang TC", 12))
         st.pack(fill="both", expand=True, padx=12, pady=4)
+        if is_edit:
+            st.insert("1.0", self.items[index].get("text", ""))
 
         def confirm():
             txt = st.get("1.0", "end").rstrip("\n")
             if not txt.strip():
                 messagebox.showwarning("空白", "內容是空的。")
                 return
-            self.items.append({"type": "text", "text": txt})
+            if is_edit:
+                self.items[index] = {"type": "text", "text": txt}
+            else:
+                self.items.append({"type": "text", "text": txt})
             self._refresh_list()
             top.destroy()
 
-        tk.Button(top, text="✔ 加入清單", command=confirm,
+        tk.Button(top, text="✔ 確定", command=confirm,
                   bg="#00bb33", fg="white", font=("PingFang TC", 12, "bold"),
                   padx=14, pady=5).pack(side="right", padx=12, pady=8)
 
-    def add_file(self):
+    def add_file(self, index=None):
+        """新增圖片/檔案；index 給定時 = 編輯該筆（重新選檔）。"""
         kinds = [("所有檔案", "*.*"), ("圖片", "*.png *.jpg *.jpeg *.gif *.bmp *.tiff *.webp *.heic"),
                  ("影片", "*.mp4 *.mov *.mkv *.avi"), ("文件", "*.pdf *.docx *.xlsx *.pptx *.txt")]
         path = filedialog.askopenfilename(parent=self.root, title="選擇要傳的檔案", filetypes=kinds)
         if not path:
             return
-        if path.lower().endswith(tuple(_IMG_EXT)):
-            self.items.append({"type": "image", "path": path})
+        new_item = {"type": "image", "path": path} if path.lower().endswith(
+            tuple(_IMG_EXT)) else {"type": "file", "path": path}
+        if index is not None:
+            self.items[index] = new_item
         else:
-            self.items.append({"type": "file", "path": path})
+            self.items.append(new_item)
         self._refresh_list()
+
+    def edit_selected(self):
+        """編輯目前選中的那一筆（雙擊或按『✏ 編輯』）。"""
+        sel = self.lb.curselection()
+        if not sel:
+            messagebox.showinfo("提示", "先在清單選一條要編輯的。")
+            return
+        i = sel[0]
+        if self.items[i].get("type") == "text":
+            self.add_text(index=i)
+        else:
+            self.add_file(index=i)
 
     def _move(self, d):
         sel = self.lb.curselection()
@@ -218,11 +240,14 @@ class App:
         self.lb = tk.Listbox(send, height=7, font=("PingFang TC", 12),
                              selectmode=tk.SINGLE)
         self.lb.pack(fill="both", expand=True)
+        self.lb.bind("<Double-Button-1>", lambda e: self.edit_selected())
         row = tk.Frame(send)
         row.pack(fill="x", pady=(6, 0))
         tk.Button(row, text="＋ 加入文字/超連結", command=self.add_text,
                   font=("PingFang TC", 11)).pack(side="left", padx=2)
         tk.Button(row, text="＋ 加入圖片/檔案", command=self.add_file,
+                  font=("PingFang TC", 11)).pack(side="left", padx=2)
+        tk.Button(row, text="✏ 編輯(選取後點/雙擊)", command=self.edit_selected,
                   font=("PingFang TC", 11)).pack(side="left", padx=2)
         tk.Button(row, text="↑ 上移", command=lambda: self._move(-1),
                   font=("PingFang TC", 11)).pack(side="left", padx=2)
