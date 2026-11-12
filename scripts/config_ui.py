@@ -190,6 +190,10 @@ class App:
             "DRY_RUN": bool(self.var_dry.get()),
             "TRACE": bool(self.var_trace.get()),
         }
+        # 保留既有的「發送清單」與「每人重複」，避免存其他設定時被清掉
+        cfg2["PER_PERSON_REPEAT"] = self.cfg.get("PER_PERSON_REPEAT", 1)
+        cfg2["SEND_ITEMS"] = self.cfg.get("SEND_ITEMS") or [
+            {"type": "text", "text": cfg2["PASTE_TEXT"]}]
         CONFIG_FILE.write_text(json.dumps(cfg2, ensure_ascii=False, indent=2), encoding="utf-8")
         self.status.set(f"已儲存 → {CONFIG_FILE.name}（迴圈 {repeat} 次 · 間隔 {interval}s · "
                         f"{'測試' if self.var_dry.get() else '正式'}）")

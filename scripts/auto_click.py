@@ -33,6 +33,20 @@ _DEFAULT_CONFIG = {
                    "🤝 +5 聯誼活動\n手作 ✂️🎨 或對談 ☕💬\n\n"
                    "👉 回我「+數字」就可以"),
     "REPEAT_TIMES": 2,
+    "PER_PERSON_REPEAT": 1,
+    "SEND_ITEMS": [
+        {"type": "text",
+         "text": ("各位好朋友 👋✨\n"
+                  "2026 即將來到年底 🎄\n\n"
+                  "想簡單調查一下 📋\n"
+                  "辦什麼活動大家會有興趣參與呢？\n\n"
+                  "📚 +1 讀書會\n類型不拘，會提前公布 📖\n\n"
+                  "🎲 +2 桌遊\n知識性與娛樂性兼具 🧠🎉\n\n"
+                  "🚴‍♂️ +3 運動\n可能是夜騎 🌙 或爬山淨山 ⛰️♻️\n\n"
+                  "🤖 +4 AI 相關\n工作坊或資訊分享 💡💻\n\n"
+                  "🤝 +5 聯誼活動\n手作 ✂️🎨 或對談 ☕💬\n\n"
+                  "👉 回我「+數字」就可以")}
+    ],
     "STEP_INTERVAL": 0.3,
     "COUNTDOWN_SEC": 3,
     "SWITCH_CHAT_HOTKEY": ["down"],
@@ -64,6 +78,9 @@ SWITCH_CHAT_HOTKEY   = tuple(_cfg["SWITCH_CHAT_HOTKEY"])
 DRY_RUN              = bool(_cfg["DRY_RUN"])
 TRACE                = bool(_cfg.get("TRACE", True))
 TRACE_FILE           = "auto_click_trace.log"
+# 發送清單 + 每人重複次數（向後相容：沒填 SEND_ITEMS 就用 PASTE_TEXT 當純文字）
+PER_PERSON_REPEAT    = max(1, int(_cfg.get("PER_PERSON_REPEAT", 1)))
+SEND_ITEMS           = _cfg.get("SEND_ITEMS") or [{"type": "text", "text": _cfg.get("PASTE_TEXT", "")}]
 # ════════════════════ 設定區結束 ════════════════════
 
 STATE = {"start": False, "stop": False}
@@ -172,6 +189,72 @@ def paste_via_system():
     except Exception as e:
         print(f"   ⚠️ 貼上例外：{e}")
     time.sleep(0.2)
+
+
+def put_text(txt):
+    """文字/超連結 → 剪貼簿。"""
+    subprocess.run(["pbcopy"], input=(txt or "").encode("utf-8"))
+    time.sleep(0.3)
+    return True
+
+
+def put_image(path):
+    """圖片 → 剪貼簿（用 NSPasteboard 放 PNG 資料）。"""
+    try:
+        from AppKit import (NSPasteboard, NSPasteboardTypePNG,
+                            NSImage, NSBitmapImageRep)
+        pb = NSPasteboard.generalPasteboard()
+        pb.clearContents()
+        img = NSImage.alloc().initWithContentsOfFile_(str(path))
+        if img is None:
+            print(f"  ⚠️ 讀不到圖片：{path}")
+            return False
+        rep = NSBitmapImageRep.imageRepWithData_(img.TIFFRepresentation())
+        png = rep.representationUsingType_properties_(NSBitmapImageRep.NSPNGFileType, None)
+        pb.setData_forType_(png, NSPasteboardTypePNG)
+        time.sleep(0.2)
+        return True
+    except Exception as e:
+        print(f"  ⚠️ 圖片進剪貼簿失敗：{e}")
+        return False
+
+
+def put_file(path):
+    """影片/文件 → 剪貼簿（NSPasteboard 放 file URL，等同 Finder 複製檔案）。"""
+    try:
+        from AppKit import NSPasteboard, NSURL
+        pb = NSPasteboard.generalPasteboard()
+        pb.clearContents()
+        ok = pb.writeObjects_([NSURL.fileURLWithPath_(str(Path(path).resolve()))])
+        time.sleep(0.2)
+        return bool(ok)
+    except Exception as e:
+        print(f"  ⚠️ 檔案進剪貼簿失敗：{e}")
+        return False
+
+
+def put_clipboard_for(item):
+    """依項目類型把內容放進剪貼簿。type: text / link / image / file。"""
+    t = item.get("type", "text")
+    if t == "image":
+        return put_image(item.get("path", ""))
+    if t == "file":
+        return put_file(item.get("path", ""))
+    return put_text(item.get("text", ""))
+
+
+def send_item(item, n, idx):
+    """發送一個項目給目前這個人：放剪貼簿 → ⌘V → Enter 送出。"""
+    ensure_line_foreground()
+    ok = put_clipboard_for(item)
+    if ok:
+        paste_via_system()
+    pause()
+    ensure_line_foreground()
+    pyautogui.press("enter")
+    pause()
+    log(f"[第{n}人] 發送#{idx} type={item.get('type','text')} prep={ok} "
+        f"frontmost={frontmost_app_name()}")
 
 
 def show_align_overlay():
@@ -286,42 +369,32 @@ def main():
         try:
             # ① 點輸入框
             e = ensure_line_foreground()
-            log(f"[第{n}次] ①點擊前 frontmost={frontmost_app_name()} ensure={e} mouse={pyautogui.position()}")
+            log(f"[第{n}人] ①點擊前 frontmost={frontmost_app_name()} ensure={e}")
             click_at(*CLICK_1); pause()
-            log(f"[第{n}次] ①點擊後 mouse={pyautogui.position()} frontmost={frontmost_app_name()}")
 
             # ② 點擊
             e = ensure_line_foreground()
-            log(f"[第{n}次] ②點擊前 frontmost={frontmost_app_name()} ensure={e} mouse={pyautogui.position()}")
+            log(f"[第{n}人] ②點擊前 frontmost={frontmost_app_name()} ensure={e}")
             click_at(*CLICK_2); pause()
-            log(f"[第{n}次] ②點擊後 mouse={pyautogui.position()} frontmost={frontmost_app_name()}")
 
-            # ③ 貼上
-            e = ensure_line_foreground()
-            cb0 = len(subprocess.run(["pbpaste"], capture_output=True, text=True).stdout)
-            subprocess.run(["pbcopy"], input=PASTE_TEXT.encode("utf-8"))
-            time.sleep(0.3)
-            paste_via_system()
-            cb1 = len(subprocess.run(["pbpaste"], capture_output=True, text=True).stdout)
-            log(f"[第{n}次] ③貼上 ensure={e} 剪貼簿:{cb0}->{cb1}字 frontmost={frontmost_app_name()} mouse={pyautogui.position()}")
-            pause()
+            # ③ 把「發送清單」每一條依序送給這個人（可重複幾輪 = PER_PERSON_REPEAT）
+            done = 0
+            for _ in range(PER_PERSON_REPEAT):
+                for idx, item in enumerate(SEND_ITEMS, 1):
+                    if STATE["stop"]:
+                        raise KeyboardInterrupt()
+                    send_item(item, n, idx)
+                    done += 1
 
-            # ④ Enter=送出
+            # ④ 換下一個人
             e = ensure_line_foreground()
-            log(f"[第{n}次] ④Enter前 frontmost={frontmost_app_name()} ensure={e}")
-            pyautogui.press("enter"); pause()
-            log(f"[第{n}次] ④Enter後 frontmost={frontmost_app_name()}")
-
-            # ⑤ 切到下一個聊天室
-            e = ensure_line_foreground()
-            log(f"[第{n}次] ⑤↓前 frontmost={frontmost_app_name()} ensure={e}")
+            log(f"[第{n}人] 換人前 frontmost={frontmost_app_name()}")
             pyautogui.hotkey(*SWITCH_CHAT_HOTKEY); pause()
-            log(f"[第{n}次] ⑤↓後 frontmost={frontmost_app_name()}")
-            print(f"✅ 第 {n} 次完成（共 {REPEAT_TIMES} 次）")
+            print(f"✅ 第 {n} 人完成（共 {REPEAT_TIMES} 人 · 每人 {done} 條）")
         except pyautogui.FailSafeException:
             print("🛑 滑鼠在左上角，緊急停止！"); break
         except KeyboardInterrupt:
-            print("🛑 Ctrl+C 中止。"); break
+            print("🛑 已停止（ESC/Ctrl+C）。"); break
     print("🏁 全部完成。")
 
 
