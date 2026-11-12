@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 執行時產生的雜項
+.DS_Store
+auto_click_trace.log
+
+# 虛擬環境
+.venv/
+venv/
+.env
