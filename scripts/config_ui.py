@@ -13,6 +13,8 @@
 """
 
 import json
+import subprocess
+import sys
 import tkinter as tk
 from pathlib import Path
 from tkinter import messagebox, ttk
@@ -152,13 +154,20 @@ class App:
         tk.Button(bottom, text="💾 儲存設定", command=self.on_save,
                   bg="#00bb33", fg="white", font=("PingFang TC", 13, "bold"),
                   padx=16, pady=6).pack(side="right")
+        tk.Button(bottom, text="① 對齊", command=lambda: self.next_step("mouse_position.py"),
+                  font=("PingFang TC", 12)).pack(side="right", padx=4)
+        tk.Button(bottom, text="▶ 開始執行", command=lambda: self.next_step("auto_click.py"),
+                  font=("PingFang TC", 12, "bold")).pack(side="right", padx=4)
+        tk.Label(bottom, text="（①對齊 / ▶執行 會先存檔、再開啟下一個）",
+                 fg="#888", font=("PingFang TC", 10)).pack(side="right", padx=6)
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _on_close(self):
         self.root.destroy()
 
-    def on_save(self):
+    def _save_cfg(self):
+        """驗證並存檔。成功回 True，輸入有誤回 False（並提示）。"""
         try:
             click1 = [int(self.e1x.get()), int(self.e1y.get())]
             click2 = [int(self.e2x.get()), int(self.e2y.get())]
@@ -166,7 +175,7 @@ class App:
             interval = float(self.en_interval.get())
         except ValueError:
             messagebox.showerror("輸入錯誤", "座標/次數/間隔要填數字。")
-            return
+            return False
         switch = {"↓ (down)": ["down"], "Ctrl+Tab": ["ctrl", "tab"], "↑ (up)": ["up"]}[
             self.cb_switch.get()]
         cfg2 = {
@@ -184,6 +193,21 @@ class App:
         CONFIG_FILE.write_text(json.dumps(cfg2, ensure_ascii=False, indent=2), encoding="utf-8")
         self.status.set(f"已儲存 → {CONFIG_FILE.name}（迴圈 {repeat} 次 · 間隔 {interval}s · "
                         f"{'測試' if self.var_dry.get() else '正式'}）")
+        return True
+
+    def on_save(self):
+        self._save_cfg()
+
+    def next_step(self, target):
+        """儲存後直接開下一個工具（獨立進程），並關掉設定窗，省去關了再開。"""
+        if not self._save_cfg():
+            return
+        try:
+            subprocess.Popen([sys.executable, str(Path(__file__).parent / target)])
+        except Exception as e:
+            messagebox.showerror("啟動失敗", f"無法啟動 {target}\n{e}")
+            return
+        self.root.after(300, self._on_close)   # 開起來後再關設定窗
 
 
 def main():
