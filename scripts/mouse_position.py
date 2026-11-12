@@ -70,7 +70,7 @@ def main():
     info.overrideredirect(True)
     info.attributes("-topmost", True)
     info.geometry(f"+{pyautogui.size()[0] // 2 - 220}+30")
-    tk.Label(info, text="拖 LINE 對齊標記；下面印滑鼠座標；按 ESC 結束",
+    tk.Label(info, text="拖 LINE 對齊標記；下面印滑鼠座標；按 ESC 結束並回總控台",
              bg="black", fg="lime", font=("PingFang TC", 13, "bold"),
              padx=14, pady=6).pack()
     info.update_idletasks()
@@ -117,6 +117,13 @@ def main():
     info.after(200, keep_on_top)
     root.mainloop()
     print("結束（標記已清除）。")
+    # 自動回總控台，省去手動關了再開
+    try:
+        import subprocess, sys
+        from pathlib import Path
+        subprocess.Popen([sys.executable, str(Path(__file__).parent / "hub.py")])
+    except Exception as e:
+        print("自動回總控台失敗：", e)
 
 
 if __name__ == "__main__":
